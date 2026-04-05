@@ -1,0 +1,40 @@
+name: infra-platform
+
+version: "3.9"
+
+services:
+  config-server:
+    build:
+      context: ./config-server
+      dockerfile: Dockerfile
+    container_name: config-server
+    restart: unless-stopped
+    ports:
+      - "7072:7071"
+    volumes:
+      - ./config-repo:/config-repo
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      CONFIG_REPO_LOCATION: file:/config-repo
+    networks:
+      - ms-net
+
+# 🔜 FUTURO
+#  registry-server:
+#    build: ./registry-server
+#    ports:
+#      - "8761:8761"
+#    networks:
+#      - ms-net
+#
+#  gateway:
+#    build: ./gateway
+#    ports:
+#      - "8080:8080"
+#    networks:
+#      - ms-net
+
+networks:
+  ms-net:
+    #external: true
+    name: ms-net
