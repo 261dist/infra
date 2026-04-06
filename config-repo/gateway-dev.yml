@@ -1,0 +1,27 @@
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: catalogo-route
+          uri: lb://catalogo
+          predicates:
+            - Path=/api/v1/categorias/**
+        - id: catalogo-instancia
+          uri: lb://catalogo
+          predicates:
+            - Path=/api/v1/instancia
+        - id: catalogo-swagger
+          uri: lb://catalogo
+          predicates:
+            - Path=/swagger-ui/**,/v3/api-docs/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"

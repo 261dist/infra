@@ -6,32 +6,45 @@ Este modulo contiene la infraestructura base de la arquitectura de microservicio
 
 ## Componentes actuales
 
+- config-repo (configuracion externa)
 - Config Server (Spring Cloud Config Server)
 - Registry Server (Eureka)
-- config-repo (configuracion externa)
+- API Gateway
 
 ---
 
 ## Componentes planificados
 
-- API Gateway
 - Circuit Breaker
-- Seguridad
 - Balanceador externo
+- Seguridad
 
 ---
 
 ## Arquitectura (estado actual)
 
 ```text
-Microservicios -> Registry Server -> Config Server -> config-repo
+Client -> Gateway -> Microservicios -> Registry Server -> Config Server -> config-repo
 ```
 
 Evolucion objetivo:
 
 ```text
-Client -> Gateway -> Microservicios -> Registry Server -> Config Server
+Client -> Gateway + atributos de calidad -> Microservicios -> Registry Server -> Config Server
 ```
+
+---
+
+## Puertos utilizados
+
+| Servicio | Puerto expuesto |
+|---|---:|
+| Config Server DEV | 7071 |
+| Config Server PROD | 7072 |
+| Registry Server DEV | 8761 |
+| Registry Server PROD | 8762 |
+| Gateway DEV | 9090 |
+| Gateway PROD | 9091 |
 
 ---
 
@@ -47,7 +60,7 @@ Esta red permite la comunicacion entre:
 
 - config-server
 - registry-server
-- gateway (futuro)
+- gateway
 - microservicios
 
 ---
@@ -58,6 +71,7 @@ Esta red permite la comunicacion entre:
 infra/
   config-server/
   registry-server/
+  gateway/
   config-repo/
   docker-compose.yml
 ```
@@ -183,6 +197,8 @@ Archivos actuales:
 config-repo/
   catalogo-dev.yml
   catalogo-prod.yml
+  gateway-dev.yml
+  gateway-prod.yml
   registry-server-dev.yml
   registry-server-prod.yml
 ```
@@ -216,6 +232,8 @@ http://localhost:8762
 3. Levantar microservicio (ejemplo: catalogo)
 
 4. Verificar registro del microservicio en Eureka
+
+5. Probar enrutamiento por Gateway con `lb://catalogo`
 
 ---
 
@@ -266,7 +284,8 @@ Dentro de Docker:
 
 - [x] Config Server
 - [x] Registry Server (Eureka)
-- [ ] API Gateway
+- [x] API Gateway
+- [x] Enrutamiento `lb://catalogo`
 - [ ] Circuit Breaker
 - [ ] Seguridad
 - [ ] Balanceador
@@ -275,17 +294,17 @@ Dentro de Docker:
 
 # Siguiente paso
 
-Implementar **API Gateway** para:
+Continuar con los atributos de calidad sobre la base actual:
 
-- enrutar trafico hacia servicios registrados
-- usar descubrimiento dinamico (`lb://catalogo`)
-- preparar balanceo entre multiples instancias
+- incorporar Circuit Breaker
+- formalizar balanceador externo
+- integrar seguridad
 
 ---
 
 # Tag sugerido
 
 ```bash
-git tag -a vs03-registry-server -m "Infraestructura: Registry Server operativo"
-git push origin vs03-registry-server
+git tag -a vs04-gateway-lb -m "Infraestructura: API Gateway y enrutamiento lb://catalogo operativos"
+git push origin vs04-gateway-lb
 ```
