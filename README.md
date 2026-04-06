@@ -1,19 +1,19 @@
 # Infraestructura de Microservicios
 
-Este módulo contiene la infraestructura base para la arquitectura de microservicios.
+Este modulo contiene la infraestructura base de la arquitectura de microservicios.
 
 ---
 
 ## Componentes actuales
 
 - Config Server (Spring Cloud Config Server)
-- config-repo (configuración externa)
+- Registry Server (Eureka)
+- config-repo (configuracion externa)
 
 ---
 
 ## Componentes planificados
 
-- Eureka (Service Registry)
 - API Gateway
 - Circuit Breaker
 - Seguridad
@@ -21,43 +21,43 @@ Este módulo contiene la infraestructura base para la arquitectura de microservi
 
 ---
 
-## Arquitectura
+## Arquitectura (estado actual)
 
 ```text
-Microservicios → Config Server → config-repo
+Microservicios -> Registry Server -> Config Server -> config-repo
 ```
 
-Evolución:
+Evolucion objetivo:
 
 ```text
-Client → Gateway → Microservicios → Eureka → Config Server
+Client -> Gateway -> Microservicios -> Registry Server -> Config Server
 ```
 
 ---
 
 ## Red de infraestructura
 
-Se utiliza una red Docker común CREADA en config-server:
+Se utiliza una red Docker comun:
 
-```
+```text
 ms-net
 ```
 
-Esta red permite la comunicación entre:
+Esta red permite la comunicacion entre:
 
 - config-server
-- registry-server (futuro)
+- registry-server
 - gateway (futuro)
 - microservicios
 
 ---
 
+## Estructura del modulo
 
-## Estructura del módulo
-
-```
+```text
 infra/
   config-server/
+  registry-server/
   config-repo/
   docker-compose.yml
 ```
@@ -66,76 +66,60 @@ infra/
 
 # Config Server
 
-## Descripción
+## Descripcion
 
-Servidor de configuración centralizada para todos los microservicios.
+Servidor de configuracion centralizada para los microservicios.
 
 Permite:
 
-- externalizar configuración
-- separar código de configuración
-- soportar múltiples entornos (`dev`, `prod`)
-- facilitar despliegue en microservicios
+- externalizar configuracion
+- separar codigo de configuracion
+- soportar multiples entornos (`dev`, `prod`)
+- facilitar despliegue de microservicios
 
 ---
 
-## Configuración utilizada
+## Configuracion utilizada
 
 Modo:
 
-```
+```text
 native
 ```
 
-Ruta del repositorio:
+Ruta del repositorio montado:
 
-```
+```text
 /config-repo
 ```
-
-Montado como volumen Docker.
 
 ---
 
 ## Levantar Config Server
-DEV
+
+DEV (desde `infra/config-server`):
+
 ```bash
 mvn spring-boot:run
 ```
-PROD
-```bash
-docker compose up
-```
-o
+
+PROD (desde `infra`):
+
 ```bash
 docker compose up -d config-server
 ```
 
 ---
 
-## Acceso
+## Pruebas de Config Server
 
-### DEV
-
-```
-http://localhost:7071
-```
-
-### PROD
-
-```
-http://config-server:7072
-```
-
----
-
-## Prueba
+DEV:
 
 ```bash
 curl http://localhost:7071/catalogo/dev
 ```
 
-o:
+PROD:
 
 ```bash
 curl http://localhost:7072/catalogo/prod
@@ -143,81 +127,145 @@ curl http://localhost:7072/catalogo/prod
 
 ---
 
-# config-repo
+# Registry Server (Eureka)
 
-Contiene la configuración externa de los microservicios.
+## Descripcion
 
-Ejemplo:
+Servidor de registro y descubrimiento de servicios.
 
+Permite:
+
+- registro automatico de microservicios
+- descubrimiento dinamico
+- integracion posterior con API Gateway (`lb://`)
+
+---
+
+## Levantar Registry Server
+
+DEV (desde `infra/registry-server`):
+
+```bash
+mvn spring-boot:run
 ```
-config-repo/
-  catalogo-dev.yml
-  catalogo-prod.yml
+
+PROD (desde `infra`):
+
+```bash
+docker compose up -d registry-server
 ```
 
 ---
 
-## Ejemplo de configuración
+## Acceso a Eureka
+
+DEV:
+
+```text
+http://localhost:8761
+```
+
+PROD (host):
+
+```text
+http://localhost:8762
+```
+
+---
+
+# config-repo
+
+Contiene la configuracion externa de infraestructura y microservicios.
+
+Archivos actuales:
+
+```text
+config-repo/
+  catalogo-dev.yml
+  catalogo-prod.yml
+  registry-server-dev.yml
+  registry-server-prod.yml
+```
+
+Ejemplo:
 
 ```yaml
-spring:
-  datasource:
-    url: jdbc:mysql://${CATALOGO_DB_HOST}:${CATALOGO_DB_PORT}/${CATALOGO_DB_NAME}
-    username: ${CATALOGO_DB_USERNAME}
-    password: ${CATALOGO_DB_PASSWORD}
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false
 ```
 
 ---
 
 # Flujo de uso
 
-1. Levantar infraestructura
+1. Levantar infraestructura base
 
 ```bash
-docker compose up -d config-server
+docker compose up -d
 ```
 
-2. Levantar microservicio (ej: catalogo)
+2. Verificar endpoints
 
-3. Microservicio obtiene configuración desde Config Server
+```text
+http://localhost:7072/catalogo/prod
+http://localhost:8762
+```
+
+3. Levantar microservicio (ejemplo: catalogo)
+
+4. Verificar registro del microservicio en Eureka
 
 ---
 
 # Problemas comunes
 
-## 1. No conecta a config-server
+## 1. Microservicio no conecta a config-server
 
 Causa:
 - red incorrecta
 
-Solución:
-- conectar microservicio a `ms-net`
+Solucion:
+- conectar el servicio a `ms-net`
 
 ---
 
-## 2. Configuración no cargada
+## 2. Microservicio no aparece en Eureka
 
 Causa:
-- archivo no existe en config-repo
+- `defaultZone` incorrecto
+- `registry-server` no disponible
 
-Solución:
-- verificar nombre: `catalogo-dev.yml`, `catalogo-prod.yml`
+Solucion:
+- en DEV usar `http://localhost:8761/eureka`
+- en Docker usar `http://registry-server:8761/eureka`
 
 ---
 
-## 3. Uso incorrecto de localhost
+## 3. Configuracion no cargada
+
+Causa:
+- archivo no existe en `config-repo`
+
+Solucion:
+- verificar nombres por entorno (`*-dev.yml`, `*-prod.yml`)
+
+---
+
+## 4. Uso incorrecto de localhost en Docker
 
 Dentro de Docker:
 
-❌ `localhost`  
-✔ `config-server`
+- Incorrecto: `localhost`
+- Correcto: `config-server`, `registry-server`
 
 ---
 
 # Estado de avance
 
 - [x] Config Server
-- [ ] Eureka
+- [x] Registry Server (Eureka)
 - [ ] API Gateway
 - [ ] Circuit Breaker
 - [ ] Seguridad
@@ -227,17 +275,17 @@ Dentro de Docker:
 
 # Siguiente paso
 
-Implementar **Eureka (Service Registry)** para permitir:
+Implementar **API Gateway** para:
 
-- registro automático de microservicios
-- descubrimiento dinámico
-- integración con API Gateway
+- enrutar trafico hacia servicios registrados
+- usar descubrimiento dinamico (`lb://catalogo`)
+- preparar balanceo entre multiples instancias
 
 ---
 
 # Tag sugerido
 
 ```bash
-git tag -a vs02-config-server -m "Infraestructura: Config Server operativo"
-git push origin vs02-config-server
+git tag -a vs03-registry-server -m "Infraestructura: Registry Server operativo"
+git push origin vs03-registry-server
 ```
