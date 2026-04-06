@@ -35,13 +35,23 @@ services:
     networks:
       - ms-net
 
-#  registry-server:
-#    build: ./registry-server
-#    ports:
-#      - "8761:8761"
-#    networks:
-#      - ms-net
-# 🔜 FUTURO
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: gateway
+    restart: unless-stopped
+    ports:
+      - "9091:9090"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      CONFIG_SERVER_URL: http://config-server:7071
+    depends_on:
+      - config-server
+      - registry-server
+    networks:
+      - ms-net
+# 🔜 FUTURO es ahora
 #  gateway:
 #    build: ./gateway
 #    ports:

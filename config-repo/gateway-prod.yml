@@ -1,0 +1,22 @@
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: catalogo-route
+          uri: lb://catalogo
+          predicates:
+            - Path=/api/v1/categorias/**
+        - id: catalogo-instancia
+          uri: lb://catalogo
+          predicates:
+            - Path=/api/v1/instancia            
+eureka:
+  client:
+    service-url:
+      defaultZone: http://registry-server:8761/eureka
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
