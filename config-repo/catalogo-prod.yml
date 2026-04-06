@@ -1,3 +1,6 @@
+server:
+  port: 8082
+
 spring:
   datasource:
     url: jdbc:mysql://${CATALOGO_DB_HOST}:${CATALOGO_DB_PORT}/${CATALOGO_DB_NAME}?useSSL=false&serverTimezone=America/Lima&allowPublicKeyRetrieval=true
@@ -16,8 +19,10 @@ spring:
       hibernate:
         format_sql: false
 
-server:
-  port: 8082
+eureka:
+  client:
+    service-url:
+      defaultZone: http://registry-server:8761/eureka
 
 springdoc:
   swagger-ui:
