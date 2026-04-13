@@ -1,7 +1,5 @@
 name: infra-platform
 
-version: "3.9"
-
 services:
   config-server:
     build:
@@ -26,7 +24,7 @@ services:
     container_name: registry-server
     restart: unless-stopped
     ports:
-      - "8762:8761"
+      - "7082:7081"
     environment:
       SPRING_PROFILES_ACTIVE: prod
       CONFIG_SERVER_URL: http://config-server:7071
@@ -42,7 +40,7 @@ services:
     container_name: gateway
     restart: unless-stopped
     ports:
-      - "9091:9090"
+      - "7092:7091"
     environment:
       SPRING_PROFILES_ACTIVE: prod
       CONFIG_SERVER_URL: http://config-server:7071

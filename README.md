@@ -15,9 +15,12 @@ Este modulo contiene la infraestructura base de la arquitectura de microservicio
 
 ## Componentes planificados
 
+- Feign entre microservicios
 - Circuit Breaker
-- Balanceador externo
 - Seguridad
+- Gestion del trafico en Gateway
+- Observabilidad y trazabilidad
+- Integracion con frontend
 
 ---
 
@@ -41,10 +44,10 @@ Client -> Gateway + atributos de calidad -> Microservicios -> Registry Server ->
 |---|---:|
 | Config Server DEV | 7071 |
 | Config Server PROD | 7072 |
-| Registry Server DEV | 8761 |
-| Registry Server PROD | 8762 |
-| Gateway DEV | 9090 |
-| Gateway PROD | 9091 |
+| Registry Server DEV | 7081 |
+| Registry Server PROD | 7082 |
+| Gateway DEV | 7091 |
+| Gateway PROD | 7092 |
 
 ---
 
@@ -176,13 +179,13 @@ docker compose up -d registry-server
 DEV:
 
 ```text
-http://localhost:8761
+http://localhost:7081
 ```
 
 PROD (host):
 
 ```text
-http://localhost:8762
+http://localhost:7082
 ```
 
 ---
@@ -199,6 +202,8 @@ config-repo/
   catalogo-prod.yml
   gateway-dev.yml
   gateway-prod.yml
+  producto-dev.yml
+  producto-prod.yml
   registry-server-dev.yml
   registry-server-prod.yml
 ```
@@ -226,7 +231,9 @@ docker compose up -d
 
 ```text
 http://localhost:7072/catalogo/prod
-http://localhost:8762
+http://localhost:7082
+http://localhost:7092/api/v1/catalogo/instancia
+http://localhost:7092/api/v1/producto/instancia
 ```
 
 3. Levantar microservicio (ejemplo: catalogo)
@@ -234,6 +241,8 @@ http://localhost:8762
 4. Verificar registro del microservicio en Eureka
 
 5. Probar enrutamiento por Gateway con `lb://catalogo`
+
+6. Probar enrutamiento por Gateway con `lb://producto`
 
 ---
 
@@ -256,8 +265,8 @@ Causa:
 - `registry-server` no disponible
 
 Solucion:
-- en DEV usar `http://localhost:8761/eureka`
-- en Docker usar `http://registry-server:8761/eureka`
+- en DEV usar `http://localhost:7081/eureka`
+- en Docker usar `http://registry-server:7081/eureka`
 
 ---
 
@@ -285,10 +294,13 @@ Dentro de Docker:
 - [x] Config Server
 - [x] Registry Server (Eureka)
 - [x] API Gateway
-- [x] Enrutamiento `lb://catalogo`
+- [x] Enrutamiento `lb://catalogo` y `lb://producto`
+- [ ] Feign
 - [ ] Circuit Breaker
 - [ ] Seguridad
-- [ ] Balanceador
+- [ ] Gestion del trafico (filtros, politicas y control de peticiones)
+- [ ] Observabilidad y trazabilidad
+- [ ] Integracion con frontend
 
 ---
 
@@ -296,15 +308,18 @@ Dentro de Docker:
 
 Continuar con los atributos de calidad sobre la base actual:
 
+- incorporar Feign para comunicacion entre microservicios
 - incorporar Circuit Breaker
-- formalizar balanceador externo
-- integrar seguridad
+- integrar seguridad con autenticacion y autorizacion
+- aplicar gestion del trafico en Gateway
+- fortalecer observabilidad y trazabilidad entre servicios
+- habilitar integracion con frontend
 
 ---
 
 # Tag sugerido
 
 ```bash
-git tag -a vs04-gateway-lb -m "Infraestructura: API Gateway y enrutamiento lb://catalogo operativos"
-git push origin vs04-gateway-lb
+git tag -a vs04-gateway-lb-r2 -m "Infraestructura: ajustes de puertos y documentacion de gateway y balanceo"
+git push origin vs04-gateway-lb-r2
 ```
