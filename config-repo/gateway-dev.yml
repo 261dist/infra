@@ -9,16 +9,32 @@ spring:
         - id: catalogo-instancia
           uri: lb://catalogo
           predicates:
-            - Path=/api/v1/instancia
+            - Path=/api/v1/catalogo/instancia
         - id: catalogo-swagger
           uri: lb://catalogo
           predicates:
-            - Path=/swagger-ui/**,/v3/api-docs/**
+            - Path=/catalogo/swagger-ui/**,/catalogo/v3/api-docs/**
+        
+        # PRODUCTO
+        - id: producto-route
+          uri: lb://producto
+          predicates:
+            - Path=/api/v1/productos/**
+        - id: producto-instancia
+          uri: lb://producto
+          predicates:
+            - Path=/api/v1/producto/instancia
+        - id: producto-swagger
+          uri: lb://producto
+          predicates:
+            - Path=/producto/swagger-ui/**,/producto/v3/api-docs/**
+        
+        #
 
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka
+      defaultZone: http://localhost:7081/eureka
 
 management:
   endpoints:

@@ -9,11 +9,22 @@ spring:
         - id: catalogo-instancia
           uri: lb://catalogo
           predicates:
-            - Path=/api/v1/instancia            
+            - Path=/api/v1/catalogo/instancia
+
+        # PRODUCTO
+        - id: producto-route
+          uri: lb://producto
+          predicates:
+            - Path=/api/v1/productos/**
+        - id: producto-instancia
+          uri: lb://producto
+          predicates:
+            - Path=/api/v1/producto/instancia
+
 eureka:
   client:
     service-url:
-      defaultZone: http://registry-server:8761/eureka
+      defaultZone: http://registry-server:7081/eureka
 
 management:
   endpoints:
