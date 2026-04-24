@@ -15,8 +15,6 @@ Este modulo contiene la infraestructura base de la arquitectura de microservicio
 
 ## Componentes planificados
 
-- Feign entre microservicios
-- Circuit Breaker
 - Seguridad
 - Gestion del trafico en Gateway
 - Observabilidad y trazabilidad
@@ -24,7 +22,7 @@ Este modulo contiene la infraestructura base de la arquitectura de microservicio
 
 ---
 
-## Arquitectura (estado actual)
+## Arquitectura actual
 
 ```text
 Client -> Gateway -> Microservicios -> Registry Server -> Config Server -> config-repo
@@ -40,7 +38,7 @@ Client -> Gateway + atributos de calidad -> Microservicios -> Registry Server ->
 
 ## Puertos utilizados
 
-| Servicio | Puerto expuesto |
+| Servicio | Puerto |
 |---|---:|
 | Config Server DEV | 7071 |
 | Config Server PROD | 7072 |
@@ -81,9 +79,7 @@ infra/
 
 ---
 
-# Config Server
-
-## Descripcion
+## Config Server
 
 Servidor de configuracion centralizada para los microservicios.
 
@@ -94,11 +90,7 @@ Permite:
 - soportar multiples entornos (`dev`, `prod`)
 - facilitar despliegue de microservicios
 
----
-
-## Configuracion utilizada
-
-Modo:
+Modo utilizado:
 
 ```text
 native
@@ -110,25 +102,23 @@ Ruta del repositorio montado:
 /config-repo
 ```
 
----
+### Levantar Config Server
 
-## Levantar Config Server
-
-DEV (desde `infra/config-server`):
+DEV:
 
 ```bash
+cd infra/config-server
 mvn spring-boot:run
 ```
 
-PROD (desde `infra`):
+PROD:
 
 ```bash
+cd infra
 docker compose up -d config-server
 ```
 
----
-
-## Pruebas de Config Server
+### Pruebas
 
 DEV:
 
@@ -144,9 +134,7 @@ curl http://localhost:7072/catalogo/prod
 
 ---
 
-# Registry Server (Eureka)
-
-## Descripcion
+## Registry Server
 
 Servidor de registro y descubrimiento de servicios.
 
@@ -154,43 +142,34 @@ Permite:
 
 - registro automatico de microservicios
 - descubrimiento dinamico
-- integracion posterior con API Gateway (`lb://`)
+- integracion con API Gateway mediante `lb://`
 
----
-
-## Levantar Registry Server
-
-DEV (desde `infra/registry-server`):
-
-```bash
-mvn spring-boot:run
-```
-
-PROD (desde `infra`):
-
-```bash
-docker compose up -d registry-server
-```
-
----
-
-## Acceso a Eureka
+### Levantar Registry Server
 
 DEV:
 
-```text
-http://localhost:7081
+```bash
+cd infra/registry-server
+mvn spring-boot:run
 ```
 
-PROD (host):
+PROD:
+
+```bash
+cd infra
+docker compose up -d registry-server
+```
+
+### Acceso a Eureka
 
 ```text
-http://localhost:7082
+DEV  -> http://localhost:7081
+PROD -> http://localhost:7082
 ```
 
 ---
 
-# config-repo
+## config-repo
 
 Contiene la configuracion externa de infraestructura y microservicios.
 
@@ -208,7 +187,7 @@ config-repo/
   registry-server-prod.yml
 ```
 
-Ejemplo:
+Ejemplo base:
 
 ```yaml
 eureka:
@@ -217,17 +196,32 @@ eureka:
     fetch-registry: false
 ```
 
+Ejemplo actual de resiliencia externa para `producto`:
+
+```yaml
+resilience4j:
+  circuitbreaker:
+    instances:
+      catalogo:
+        slidingWindowSize: 5
+        minimumNumberOfCalls: 3
+        failureRateThreshold: 50
+        waitDurationInOpenState: 5s
+        permittedNumberOfCallsInHalfOpenState: 2
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+```
+
 ---
 
-# Flujo de uso
+## Flujo de uso
 
-1. Levantar infraestructura base
+1. Levantar infraestructura base.
 
 ```bash
 docker compose up -d
 ```
 
-2. Verificar endpoints
+2. Verificar endpoints.
 
 ```text
 http://localhost:7072/catalogo/prod
@@ -236,51 +230,67 @@ http://localhost:7092/api/v1/catalogo/instancia
 http://localhost:7092/api/v1/producto/instancia
 ```
 
-3. Levantar microservicio (ejemplo: catalogo)
-
-4. Verificar registro del microservicio en Eureka
-
-5. Probar enrutamiento por Gateway con `lb://catalogo`
-
-6. Probar enrutamiento por Gateway con `lb://producto`
+3. Levantar microservicios.
+4. Verificar registro en Eureka.
+5. Probar enrutamiento por Gateway con `lb://catalogo`.
+6. Probar enrutamiento por Gateway con `lb://producto`.
 
 ---
 
-# Problemas comunes
+## Resiliencia actual
 
-## 1. Microservicio no conecta a config-server
+La infraestructura ya soporta configuracion externa para Circuit Breaker desde `config-repo`.
+
+Estado actual:
+
+- `producto` consume configuracion Resilience4j desde `producto-dev.yml` y `producto-prod.yml`
+- el circuito configurado se llama `catalogo`
+- protege la llamada remota de `producto` hacia `catalogo`
+- `catalogo` no requirio cambios para esta fase
+
+Separacion de responsabilidades:
+
+- `infra` centraliza la configuracion externa
+- `producto` implementa el uso del Circuit Breaker
+- `catalogo` mantiene su API sin cambios
+
+---
+
+## Problemas comunes
+
+### 1. Microservicio no conecta a config-server
 
 Causa:
+
 - red incorrecta
 
 Solucion:
+
 - conectar el servicio a `ms-net`
 
----
-
-## 2. Microservicio no aparece en Eureka
+### 2. Microservicio no aparece en Eureka
 
 Causa:
+
 - `defaultZone` incorrecto
 - `registry-server` no disponible
 
 Solucion:
+
 - en DEV usar `http://localhost:7081/eureka`
 - en Docker usar `http://registry-server:7081/eureka`
 
----
-
-## 3. Configuracion no cargada
+### 3. Configuracion no cargada
 
 Causa:
+
 - archivo no existe en `config-repo`
 
 Solucion:
+
 - verificar nombres por entorno (`*-dev.yml`, `*-prod.yml`)
 
----
-
-## 4. Uso incorrecto de localhost en Docker
+### 4. Uso incorrecto de localhost en Docker
 
 Dentro de Docker:
 
@@ -289,14 +299,14 @@ Dentro de Docker:
 
 ---
 
-# Estado de avance
+## Estado de avance
 
 - [x] Config Server
 - [x] Registry Server (Eureka)
 - [x] API Gateway
 - [x] Enrutamiento `lb://catalogo` y `lb://producto`
-- [ ] Feign
-- [ ] Circuit Breaker
+- [x] Feign
+- [x] Circuit Breaker
 - [ ] Seguridad
 - [ ] Gestion del trafico (filtros, politicas y control de peticiones)
 - [ ] Observabilidad y trazabilidad
@@ -304,12 +314,10 @@ Dentro de Docker:
 
 ---
 
-# Siguiente paso
+## Siguiente paso
 
 Continuar con los atributos de calidad sobre la base actual:
 
-- incorporar Feign para comunicacion entre microservicios
-- incorporar Circuit Breaker
 - integrar seguridad con autenticacion y autorizacion
 - aplicar gestion del trafico en Gateway
 - fortalecer observabilidad y trazabilidad entre servicios
@@ -317,9 +325,9 @@ Continuar con los atributos de calidad sobre la base actual:
 
 ---
 
-# Tag sugerido
+## Tag sugerido
 
 ```bash
-git tag -a vs04-gateway-lb-r2 -m "Infraestructura: ajustes de puertos y documentacion de gateway y balanceo"
-git push origin vs04-gateway-lb-r2
+git tag -a vs05-circuitbreaker-config -m "Infraestructura: configuracion externa y documentacion de Circuit Breaker para producto"
+git push origin vs05-circuitbreaker-config
 ```
