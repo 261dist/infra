@@ -35,3 +35,12 @@ springdoc:
 logging:
   level:
     com.upeu.catalogo: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers,circuitbreakerevents
+  endpoint:
+    health:
+      show-details: always
