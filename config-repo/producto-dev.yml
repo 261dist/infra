@@ -37,6 +37,15 @@ logging:
   level:
     com.upeu.producto: DEBUG
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers,circuitbreakerevents
+  endpoint:
+    health:
+      show-details: always
+
 
 resilience4j:
   circuitbreaker:

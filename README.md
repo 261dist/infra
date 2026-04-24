@@ -17,7 +17,7 @@ Este modulo contiene la infraestructura base de la arquitectura de microservicio
 
 - Seguridad
 - Gestion del trafico en Gateway
-- Observabilidad y trazabilidad
+- Observabilidad y trazabilidad con herramientas
 - Integracion con frontend
 
 ---
@@ -237,6 +237,23 @@ http://localhost:7092/api/v1/producto/instancia
 
 ---
 
+## Observabilidad actual
+
+La infraestructura ya soporta observabilidad basica manual para la operacion diaria y validacion de integracion:
+
+- configuracion de Actuator en `gateway`, `producto` y `catalogo`
+- logs locales en archivo para `gateway`
+- propagacion de `X-Trace-ID` desde `gateway` hacia los microservicios
+- soporte para validaciones de `health`, `metrics`, `circuitbreakers` y `circuitbreakerevents`
+
+Este `README` documenta la capacidad operativa e integracion.
+
+La guia paso a paso para clase y evaluacion se mantiene aparte en:
+
+- [SESION-06.P2-OBSERVABILIDAD.md](C:/ms1/ProyectosMS2026/infra/SESION-06.P2-OBSERVABILIDAD.md)
+
+---
+
 ## Resiliencia actual
 
 La infraestructura ya soporta configuracion externa para Circuit Breaker desde `config-repo`.
@@ -306,10 +323,10 @@ Dentro de Docker:
 - [x] API Gateway
 - [x] Enrutamiento `lb://catalogo` y `lb://producto`
 - [x] Feign
-- [x] Circuit Breaker
+- [x] Circuit Breaker + Observabilidad basica manual
+- [ ] Observabilidad con herramientas
 - [ ] Seguridad
 - [ ] Gestion del trafico (filtros, politicas y control de peticiones)
-- [ ] Observabilidad y trazabilidad
 - [ ] Integracion con frontend
 
 ---
@@ -318,9 +335,11 @@ Dentro de Docker:
 
 Continuar con los atributos de calidad sobre la base actual:
 
+- centralizar metricas con Prometheus
+- centralizar logs con Loki
+- visualizar metricas y logs con Grafana
 - integrar seguridad con autenticacion y autorizacion
 - aplicar gestion del trafico en Gateway
-- fortalecer observabilidad y trazabilidad entre servicios
 - habilitar integracion con frontend
 
 ---
@@ -328,6 +347,6 @@ Continuar con los atributos de calidad sobre la base actual:
 ## Tag sugerido
 
 ```bash
-git tag -a vs05-circuitbreaker-config -m "Infraestructura: configuracion externa y documentacion de Circuit Breaker para producto"
-git push origin vs05-circuitbreaker-config
+git tag -a vs06-obs-r2 -m "Infraestructura: cierre de Circuit Breaker y observabilidad basica manual"
+git push origin vs06-obs-r2
 ```
