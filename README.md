@@ -17,7 +17,6 @@ Este modulo contiene la infraestructura base de la arquitectura de microservicio
 
 - Seguridad
 - Gestion del trafico en Gateway
-- Observabilidad y trazabilidad con herramientas
 - Integracion con frontend
 
 ---
@@ -76,6 +75,24 @@ infra/
   config-repo/
   docker-compose.yml
 ```
+
+---
+
+## Ubicacion en la secuencia 2026-2
+
+Este modulo sostiene principalmente la Unidad 1:
+
+- `S1` Arquitectura base orientada a produccion
+- `S2` Configuracion centralizada del sistema
+- `S3` Registro y descubrimiento de servicios + ejecucion concurrente
+- `S4` Punto unico de acceso y distribucion de trafico
+
+Tambien sirve de base para la Unidad 2, especialmente en:
+
+- `S6` Interaccion entre servicios y resiliencia
+- `S7` Observabilidad y trazabilidad
+- `S8` Control de acceso al sistema
+- `S9` Gestion del trafico del sistema
 
 ---
 
@@ -251,8 +268,30 @@ Este `README` documenta la capacidad operativa e integracion.
 La guia paso a paso para clase y evaluacion se mantiene aparte en:
 
 - [SESION-06.P2-OBSERVABILIDAD.md](C:/ms1/ProyectosMS2026/infra/SESION-06.P2-OBSERVABILIDAD.md)
+- [SESION-07-OBSERVABILIDAD-CON-HERRAMIENTAS.md](C:/ms1/ProyectosMS2026/observability/SESION-07-OBSERVABILIDAD-CON-HERRAMIENTAS.md)
 
----
+La observabilidad con herramientas ya no vive dentro de `infra`.
+
+Separacion actual:
+
+- `infra/` mantiene infraestructura base y compartida
+- `observability/` centraliza Prometheus, Loki, Promtail y Grafana
+
+Relacion entre modulos:
+
+```text
+infra -> expone servicios y logs
+services -> exponen metricas y logs
+observability -> consume metricas y logs desde infra y services
+```
+
+Importante:
+
+- `infra` no depende de `observability`
+- `observability` si depende de que `infra` y los microservicios esten levantados para poder scrapear metricas y leer logs
+- habilitar `/actuator/prometheus` en los servicios no obliga a levantar Prometheus
+
+--- 
 
 ## Resiliencia actual
 
@@ -324,7 +363,7 @@ Dentro de Docker:
 - [x] Enrutamiento `lb://catalogo` y `lb://producto`
 - [x] Feign
 - [x] Circuit Breaker + Observabilidad basica manual
-- [ ] Observabilidad con herramientas
+- [x] Integracion lista para observabilidad externa
 - [ ] Seguridad
 - [ ] Gestion del trafico (filtros, politicas y control de peticiones)
 - [ ] Integracion con frontend
@@ -335,9 +374,8 @@ Dentro de Docker:
 
 Continuar con los atributos de calidad sobre la base actual:
 
-- centralizar metricas con Prometheus
-- centralizar logs con Loki
-- visualizar metricas y logs con Grafana
+- consolidar `S6` como capa de interaccion y resiliencia sobre la base distribuida
+- usar `S7` para observar el sistema ya integrado con herramientas externas
 - integrar seguridad con autenticacion y autorizacion
 - aplicar gestion del trafico en Gateway
 - habilitar integracion con frontend
@@ -347,6 +385,6 @@ Continuar con los atributos de calidad sobre la base actual:
 ## Tag sugerido
 
 ```bash
-git tag -a vs06-obs-r2 -m "Infraestructura: cierre de Circuit Breaker y observabilidad basica manual"
-git push origin vs06-obs-r2
+git tag -a vs07-obs-tools -m "Infraestructura base lista para observabilidad externa con Prometheus, Loki y Grafana"
+git push origin vs07-obs-tools
 ```

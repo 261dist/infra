@@ -31,9 +31,17 @@ springdoc:
     enabled: false
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,circuitbreakers,circuitbreakerevents
   endpoint:
     health:
       show-details: never
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 resilience4j:
   circuitbreaker:
