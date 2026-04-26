@@ -31,6 +31,14 @@ springdoc:
     enabled: false
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: never
+  prometheus:
+    metrics:
+      export:
+        enabled: true
