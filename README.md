@@ -364,7 +364,8 @@ Dentro de Docker:
 - [x] Feign
 - [x] Circuit Breaker + Observabilidad basica manual
 - [x] Integracion lista para observabilidad externa
-- [ ] Seguridad
+- [x] Base de seguridad en Gateway para validacion JWT
+- [x] Integracion con `auth-service` y restriccion de rutas privadas desde el borde
 - [ ] Gestion del trafico (filtros, politicas y control de peticiones)
 - [ ] Integracion con frontend
 
@@ -376,7 +377,7 @@ Continuar con los atributos de calidad sobre la base actual:
 
 - consolidar `S6` como capa de interaccion y resiliencia sobre la base distribuida
 - usar `S7` para observar el sistema ya integrado con herramientas externas
-- integrar seguridad con autenticacion y autorizacion
+- consolidar `S8` con pruebas de autorizacion y rutas protegidas desde `gateway`
 - aplicar gestion del trafico en Gateway
 - habilitar integracion con frontend
 
@@ -385,6 +386,6 @@ Continuar con los atributos de calidad sobre la base actual:
 ## Tag sugerido
 
 ```bash
-git tag -a vs07-obs-tools -m "Infraestructura base lista para observabilidad externa con Prometheus, Loki y Grafana"
-git push origin vs07-obs-tools
+git tag -a vs08-auth -m "Gateway integrado con auth-service y validacion JWT en el borde"
+git push origin vs08-auth
 ```
