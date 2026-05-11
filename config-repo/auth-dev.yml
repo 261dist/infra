@@ -18,6 +18,10 @@ spring:
       hibernate:
         format_sql: true
 eureka:
+  instance:
+    hostname: localhost
+    prefer-ip-address: false
+    instance-id: ${spring.application.name}:${server.port}
   client:
     service-url:
       defaultZone: http://localhost:7081/eureka

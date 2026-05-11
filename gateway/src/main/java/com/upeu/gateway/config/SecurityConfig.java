@@ -30,7 +30,13 @@ public class SecurityConfig {
                         .pathMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .pathMatchers("/catalogo/swagger-ui/**", "/catalogo/v3/api-docs/**").permitAll()
                         .pathMatchers("/producto/swagger-ui/**", "/producto/v3/api-docs/**").permitAll()
+                        .pathMatchers("/orden-ms/swagger-ui/**", "/orden-ms/v3/api-docs/**").permitAll()
+                        .pathMatchers("/pago-ms/swagger-ui/**", "/pago-ms/v3/api-docs/**").permitAll()
+                        // Temporal: permitir ordenes y pagos durante pruebas sin JWT.
+                        .pathMatchers("/api/v1/ordenes/**", "/api/v1/pagos/**").permitAll()
                         .pathMatchers(HttpMethod.OPTIONS).permitAll()
+                        //.pathMatchers("/**").permitAll()
+
                         //.pathMatchers("/api/v1/productos/detalle/**").permitAll()
 
                         .anyExchange().authenticated()

@@ -1,9 +1,11 @@
 server:
-  port: 8081
+  port: 19061
 
 spring:
+  kafka:
+    bootstrap-servers: localhost:41092
   datasource:
-    url: jdbc:mysql://localhost:3381/db_catalogo?useSSL=false&serverTimezone=America/Lima&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:19060/db_pago_ms?useSSL=false&serverTimezone=America/Lima&allowPublicKeyRetrieval=true
     username: root
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -17,6 +19,13 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true
+
 eureka:
   instance:
     hostname: localhost
@@ -26,19 +35,9 @@ eureka:
     service-url:
       defaultZone: http://localhost:7081/eureka
 
-  devtools:
-    restart:
-      enabled: true
-    livereload:
-      enabled: true
-
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
-
-logging:
-  level:
-    com.upeu.catalogo: DEBUG
 
 management:
   endpoints:
