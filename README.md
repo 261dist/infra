@@ -1,391 +1,304 @@
 # Infraestructura de Microservicios
 
-Este modulo contiene la infraestructura base de la arquitectura de microservicios.
+Este modulo contiene la infraestructura base de la plataforma:
 
----
+- Config Server
+- Registry Server/Eureka
+- Gateway
+- `config-repo`
+- red compartida `ms-net`
 
-## Componentes actuales
+Kafka, observabilidad y microservicios viven en modulos separados, pero se integran con esta infraestructura.
 
-- config-repo (configuracion externa)
-- Config Server (Spring Cloud Config Server)
-- Registry Server (Eureka)
-- API Gateway
+## Componentes
 
----
+| Componente | Rol |
+|---|---|
+| `config-server` | Sirve configuracion centralizada desde `infra/config-repo` |
+| `registry-server` | Eureka para registro y descubrimiento |
+| `gateway` | Punto unico de entrada HTTP y validacion JWT en el borde |
+| `config-repo` | Configuracion por servicio y perfil |
+| `ms-net` | Red Docker compartida de produccion |
 
-## Componentes planificados
+## Puertos
 
-- Seguridad
-- Gestion del trafico en Gateway
-- Integracion con frontend
+| Servicio | DEV | PROD |
+|---|---:|---:|
+| Config Server | 7071 | 7072 |
+| Registry Server | 7081 | 7082 |
+| Gateway | 7091 | 7092 |
 
----
-
-## Arquitectura actual
+En Docker prod, los servicios se comunican por nombre interno:
 
 ```text
-Client -> Gateway -> Microservicios -> Registry Server -> Config Server -> config-repo
+config-server:7071
+registry-server:7081
+gateway:7091
 ```
 
-Evolucion objetivo:
+## Red Compartida
 
-```text
-Client -> Gateway + atributos de calidad -> Microservicios -> Registry Server -> Config Server
-```
-
----
-
-## Puertos utilizados
-
-| Servicio | Puerto |
-|---|---:|
-| Config Server DEV | 7071 |
-| Config Server PROD | 7072 |
-| Registry Server DEV | 7081 |
-| Registry Server PROD | 7082 |
-| Gateway DEV | 7091 |
-| Gateway PROD | 7092 |
-
----
-
-## Red de infraestructura
-
-Se utiliza una red Docker comun:
+`infra/docker-compose.yml` crea la red:
 
 ```text
 ms-net
 ```
 
-Esta red permite la comunicacion entre:
+La consumen como red externa:
 
-- config-server
-- registry-server
-- gateway
-- microservicios
+- `auth`
+- `catalogo`
+- `producto`
+- `orden-ms`
+- `pago-ms`
+- `kafka`
+- `observability`
 
----
+`infra` debe levantarse primero en prod para crear `ms-net`.
 
-## Estructura del modulo
-
-```text
-infra/
-  config-server/
-  registry-server/
-  gateway/
-  config-repo/
-  docker-compose.yml
-```
-
----
-
-## Ubicacion en la secuencia 2026-2
-
-Este modulo sostiene principalmente la Unidad 1:
-
-- `S1` Arquitectura base orientada a produccion
-- `S2` Configuracion centralizada del sistema
-- `S3` Registro y descubrimiento de servicios + ejecucion concurrente
-- `S4` Punto unico de acceso y distribucion de trafico
-
-Tambien sirve de base para la Unidad 2, especialmente en:
-
-- `S6` Interaccion entre servicios y resiliencia
-- `S7` Observabilidad y trazabilidad
-- `S8` Control de acceso al sistema
-- `S9` Gestion del trafico del sistema
-
----
-
-## Config Server
-
-Servidor de configuracion centralizada para los microservicios.
-
-Permite:
-
-- externalizar configuracion
-- separar codigo de configuracion
-- soportar multiples entornos (`dev`, `prod`)
-- facilitar despliegue de microservicios
-
-Modo utilizado:
+## Arquitectura
 
 ```text
-native
+cliente -> gateway -> microservicios
+                    -> Eureka
+                    -> Config Server -> config-repo
+
+microservicios -> kafka
+observability -> metricas/logs de infra y services
 ```
-
-Ruta del repositorio montado:
-
-```text
-/config-repo
-```
-
-### Levantar Config Server
-
-DEV:
-
-```bash
-cd infra/config-server
-mvn spring-boot:run
-```
-
-PROD:
-
-```bash
-cd infra
-docker compose up -d config-server
-```
-
-### Pruebas
-
-DEV:
-
-```bash
-curl http://localhost:7071/catalogo/dev
-```
-
-PROD:
-
-```bash
-curl http://localhost:7072/catalogo/prod
-```
-
----
-
-## Registry Server
-
-Servidor de registro y descubrimiento de servicios.
-
-Permite:
-
-- registro automatico de microservicios
-- descubrimiento dinamico
-- integracion con API Gateway mediante `lb://`
-
-### Levantar Registry Server
-
-DEV:
-
-```bash
-cd infra/registry-server
-mvn spring-boot:run
-```
-
-PROD:
-
-```bash
-cd infra
-docker compose up -d registry-server
-```
-
-### Acceso a Eureka
-
-```text
-DEV  -> http://localhost:7081
-PROD -> http://localhost:7082
-```
-
----
 
 ## config-repo
 
-Contiene la configuracion externa de infraestructura y microservicios.
+Contiene la configuracion externa por servicio y perfil.
 
-Archivos actuales:
+Archivos principales:
 
 ```text
-config-repo/
-  catalogo-dev.yml
-  catalogo-prod.yml
-  gateway-dev.yml
-  gateway-prod.yml
-  producto-dev.yml
-  producto-prod.yml
-  registry-server-dev.yml
-  registry-server-prod.yml
+auth-dev.yml
+auth-prod.yml
+catalogo-dev.yml
+catalogo-prod.yml
+producto-dev.yml
+producto-prod.yml
+orden-ms-dev.yml
+orden-ms-prod.yml
+pago-ms-dev.yml
+pago-ms-prod.yml
+gateway-dev.yml
+gateway-prod.yml
+registry-server-dev.yml
+registry-server-prod.yml
 ```
 
-Ejemplo base:
+Los microservicios importan Config Server desde su `application.yml`:
 
 ```yaml
-eureka:
-  client:
-    register-with-eureka: false
-    fetch-registry: false
+spring:
+  config:
+    import: "optional:configserver:${CONFIG_SERVER_URL:http://localhost:7071}"
 ```
 
-Ejemplo actual de resiliencia externa para `producto`:
+## Servicios Integrados
 
-```yaml
-resilience4j:
-  circuitbreaker:
-    instances:
-      catalogo:
-        slidingWindowSize: 5
-        minimumNumberOfCalls: 3
-        failureRateThreshold: 50
-        waitDurationInOpenState: 5s
-        permittedNumberOfCallsInHalfOpenState: 2
-        automaticTransitionFromOpenToHalfOpenEnabled: true
+| Servicio | Config centralizada | Eureka | Gateway | Observability |
+|---|---|---|---|---|
+| `auth` | si | si | si | si |
+| `catalogo` | si | si | si | si |
+| `producto` | si | si | si | si |
+| `orden-ms` | si | si | si | si |
+| `pago-ms` | si | si | si | si |
+
+## Rutas Gateway
+
+Rutas principales:
+
+| Ruta | Servicio |
+|---|---|
+| `/auth/**` | `auth` |
+| `/api/v1/categorias/**` | `catalogo` |
+| `/api/v1/productos/**` | `producto` |
+| `/ordenes/**` | `orden-ms` |
+| `/pagos/**` | `pago-ms` |
+
+En dev tambien se exponen rutas Swagger para los servicios que lo tienen habilitado.
+
+## Seguridad
+
+La seguridad principal esta centralizada en Gateway:
+
+- `/auth/**` es publico.
+- Actuator basico del Gateway queda publico para health/info/prometheus.
+- Swagger dev queda publico.
+- El resto de rutas requiere JWT.
+
+Esto significa que `/ordenes/**` y `/pagos/**` quedan protegidos cuando se accede por Gateway.
+
+Nota: los puertos directos de los microservicios se mantienen para laboratorio y pruebas. Para una produccion mas estricta, se pueden dejar sin publicar y consumirlos solo por `ms-net`.
+
+## Levantar DEV
+
+En dev normalmente se ejecutan los componentes Java con Maven.
+
+Config Server:
+
+```powershell
+cd C:\ms1\ProyectosMS2026\infra\config-server
+mvn spring-boot:run
 ```
 
----
+Registry Server:
 
-## Flujo de uso
+```powershell
+cd C:\ms1\ProyectosMS2026\infra\registry-server
+.\mvnw.cmd spring-boot:run
+```
 
-1. Levantar infraestructura base.
+Gateway:
 
-```bash
+```powershell
+cd C:\ms1\ProyectosMS2026\infra\gateway
+.\mvnw.cmd spring-boot:run
+```
+
+Validaciones:
+
+```text
+http://localhost:7071/catalogo/dev
+http://localhost:7071/orden-ms/dev
+http://localhost:7071/pago-ms/dev
+http://localhost:7081
+http://localhost:7091/actuator/health
+```
+
+## Levantar PROD
+
+Primero infra:
+
+```powershell
+cd C:\ms1\ProyectosMS2026\infra
 docker compose up -d
 ```
 
-2. Verificar endpoints.
+Luego Kafka:
+
+```powershell
+cd C:\ms1\ProyectosMS2026\kafka
+docker compose up -d
+```
+
+Luego microservicios, por ejemplo:
+
+```powershell
+cd C:\ms1\ProyectosMS2026\services\auth
+docker compose up -d
+
+cd C:\ms1\ProyectosMS2026\services\catalogo
+docker compose up -d
+
+cd C:\ms1\ProyectosMS2026\services\producto
+docker compose up -d
+
+cd C:\ms1\ProyectosMS2026\services\orden-ms
+docker compose up -d
+
+cd C:\ms1\ProyectosMS2026\services\pago-ms
+docker compose up -d
+```
+
+Finalmente observability:
+
+```powershell
+cd C:\ms1\ProyectosMS2026\observability
+docker compose up -d
+```
+
+Validaciones:
 
 ```text
-http://localhost:7072/catalogo/prod
+http://localhost:7072/orden-ms/prod
+http://localhost:7072/pago-ms/prod
 http://localhost:7082
-http://localhost:7092/api/v1/catalogo/instancia
-http://localhost:7092/api/v1/producto/instancia
+http://localhost:7092/actuator/health
 ```
 
-3. Levantar microservicios.
-4. Verificar registro en Eureka.
-5. Probar enrutamiento por Gateway con `lb://catalogo`.
-6. Probar enrutamiento por Gateway con `lb://producto`.
+## Observabilidad
 
----
+`infra` no levanta Prometheus, Loki ni Grafana. Eso vive en `observability`.
 
-## Observabilidad actual
+La plataforma expone:
 
-La infraestructura ya soporta observabilidad basica manual para la operacion diaria y validacion de integracion:
+- Actuator en Gateway.
+- Actuator/Prometheus en microservicios.
+- Logs de Gateway en `infra/gateway/logs`.
 
-- configuracion de Actuator en `gateway`, `producto` y `catalogo`
-- logs locales en archivo para `gateway`
-- propagacion de `X-Trace-ID` desde `gateway` hacia los microservicios
-- soporte para validaciones de `health`, `metrics`, `circuitbreakers` y `circuitbreakerevents`
+`observability` consume metricas y logs desde:
 
-Este `README` documenta la capacidad operativa e integracion.
+- `gateway`
+- `catalogo`
+- `producto`
+- `orden-ms`
+- `pago-ms`
+- `kafka-exporter`
 
-La guia paso a paso para clase y evaluacion se mantiene aparte en:
+## Problemas Comunes
 
-- [SESION-06.P2-OBSERVABILIDAD.md](C:/ms1/ProyectosMS2026/infra/SESION-06.P2-OBSERVABILIDAD.md)
-- [SESION-07-OBSERVABILIDAD-CON-HERRAMIENTAS.md](C:/ms1/ProyectosMS2026/observability/SESION-07-OBSERVABILIDAD-CON-HERRAMIENTAS.md)
+### Config no carga
 
-La observabilidad con herramientas ya no vive dentro de `infra`.
+Revisar:
 
-Separacion actual:
+- que Config Server este arriba
+- que `CONFIG_SERVER_URL` apunte a `http://config-server:7071` en Docker
+- que exista el archivo `{spring.application.name}-{profile}.yml` en `config-repo`
 
-- `infra/` mantiene infraestructura base y compartida
-- `observability/` centraliza Prometheus, Loki, Promtail y Grafana
+### Servicio no aparece en Eureka
 
-Relacion entre modulos:
+Revisar:
 
-```text
-infra -> expone servicios y logs
-services -> exponen metricas y logs
-observability -> consume metricas y logs desde infra y services
-```
+- dev: `http://localhost:7081/eureka`
+- prod: `http://registry-server:7081/eureka`
+- que el servicio tenga dependencia Eureka Client
 
-Importante:
+### Gateway no enruta
 
-- `infra` no depende de `observability`
-- `observability` si depende de que `infra` y los microservicios esten levantados para poder scrapear metricas y leer logs
-- habilitar `/actuator/prometheus` en los servicios no obliga a levantar Prometheus
+Revisar:
 
---- 
+- que el servicio aparezca en Eureka
+- que la ruta exista en `gateway-dev.yml` o `gateway-prod.yml`
+- que el JWT sea valido si la ruta no es publica
 
-## Resiliencia actual
+### Error usando localhost dentro de Docker
 
-La infraestructura ya soporta configuracion externa para Circuit Breaker desde `config-repo`.
+Dentro de Docker no usar `localhost` para otros contenedores.
 
-Estado actual:
+Usar:
 
-- `producto` consume configuracion Resilience4j desde `producto-dev.yml` y `producto-prod.yml`
-- el circuito configurado se llama `catalogo`
-- protege la llamada remota de `producto` hacia `catalogo`
-- `catalogo` no requirio cambios para esta fase
+- `config-server`
+- `registry-server`
+- `kafka`
+- nombre del servicio en `ms-net`
 
-Separacion de responsabilidades:
-
-- `infra` centraliza la configuracion externa
-- `producto` implementa el uso del Circuit Breaker
-- `catalogo` mantiene su API sin cambios
-
----
-
-## Problemas comunes
-
-### 1. Microservicio no conecta a config-server
-
-Causa:
-
-- red incorrecta
-
-Solucion:
-
-- conectar el servicio a `ms-net`
-
-### 2. Microservicio no aparece en Eureka
-
-Causa:
-
-- `defaultZone` incorrecto
-- `registry-server` no disponible
-
-Solucion:
-
-- en DEV usar `http://localhost:7081/eureka`
-- en Docker usar `http://registry-server:7081/eureka`
-
-### 3. Configuracion no cargada
-
-Causa:
-
-- archivo no existe en `config-repo`
-
-Solucion:
-
-- verificar nombres por entorno (`*-dev.yml`, `*-prod.yml`)
-
-### 4. Uso incorrecto de localhost en Docker
-
-Dentro de Docker:
-
-- Incorrecto: `localhost`
-- Correcto: `config-server`, `registry-server`
-
----
-
-## Estado de avance
+## Estado Actual
 
 - [x] Config Server
-- [x] Registry Server (Eureka)
-- [x] API Gateway
-- [x] Enrutamiento `lb://catalogo` y `lb://producto`
-- [x] Feign
-- [x] Circuit Breaker + Observabilidad basica manual
-- [x] Integracion lista para observabilidad externa
-- [x] Base de seguridad en Gateway para validacion JWT
-- [x] Integracion con `auth-service` y restriccion de rutas privadas desde el borde
-- [ ] Gestion del trafico (filtros, politicas y control de peticiones)
+- [x] Registry Server/Eureka
+- [x] Gateway con `lb://`
+- [x] Config centralizada para `auth`, `catalogo`, `producto`, `orden-ms`, `pago-ms`
+- [x] Red compartida `ms-net`
+- [x] Seguridad JWT en Gateway
+- [x] Integracion Kafka para `orden-ms` y `pago-ms`
+- [x] Configuracion Eureka dev con `localhost` estable
+- [x] Rutas Gateway para `/api/v1/ordenes/**` y `/api/v1/pagos/**`
+- [x] Actuator/Prometheus en servicios integrados
+- [x] Logs centralizados consumibles por observability
+- [ ] Politicas avanzadas de trafico en Gateway
+- [ ] Seguridad por microservicio como defensa en profundidad
 - [ ] Integracion con frontend
-
----
-
-## Siguiente paso
-
-Continuar con los atributos de calidad sobre la base actual:
-
-- consolidar `S6` como capa de interaccion y resiliencia sobre la base distribuida
-- usar `S7` para observar el sistema ya integrado con herramientas externas
-- consolidar `S8` con pruebas de autorizacion y rutas protegidas desde `gateway`
-- aplicar gestion del trafico en Gateway
-- habilitar integracion con frontend
 
 ---
 
 ## Tag sugerido
 
 ```bash
-git tag -a vs08-auth -m "Gateway integrado con auth-service y validacion JWT en el borde"
-git push origin vs08-auth
+git tag -a vs09-kafka -m "eda con vs09-kafka"
+git push origin vs09-kafka
 ```

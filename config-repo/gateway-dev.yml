@@ -33,10 +33,34 @@ spring:
           uri: lb://producto
           predicates:
             - Path=/producto/swagger-ui/**,/producto/v3/api-docs/**
+
+        # ORDEN
+        - id: orden-route
+          uri: lb://orden-ms
+          predicates:
+            - Path=/api/v1/ordenes/**
+        - id: orden-swagger
+          uri: lb://orden-ms
+          predicates:
+            - Path=/orden-ms/swagger-ui/**,/orden-ms/v3/api-docs/**
+
+        # PAGO
+        - id: pago-route
+          uri: lb://pago-ms
+          predicates:
+            - Path=/api/v1/pagos/**
+        - id: pago-swagger
+          uri: lb://pago-ms
+          predicates:
+            - Path=/pago-ms/swagger-ui/**,/pago-ms/v3/api-docs/**
         
         #
 
 eureka:
+  instance:
+    hostname: localhost
+    prefer-ip-address: false
+    instance-id: ${spring.application.name}:${server.port}
   client:
     service-url:
       defaultZone: http://localhost:7081/eureka

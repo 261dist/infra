@@ -26,6 +26,18 @@ spring:
           predicates:
             - Path=/api/v1/producto/instancia
 
+        # ORDEN
+        - id: orden-route
+          uri: lb://orden-ms
+          predicates:
+            - Path=/api/v1/ordenes/**
+
+        # PAGO
+        - id: pago-route
+          uri: lb://pago-ms
+          predicates:
+            - Path=/api/v1/pagos/**
+
 eureka:
   client:
     service-url:
